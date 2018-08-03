@@ -30,7 +30,7 @@ describe "git-http-backend service", ->
 		cp "#{DATA_DIR}/README.md", "."
 		exec "git add README.md"
 		exec "git commit -m 'Initial commit'"
-		execp "git push"
+		execp "git push origin master"
 
 	it "Clones ", ->
 		cd DEST_DIR
@@ -47,7 +47,9 @@ describe "git-http-backend service", ->
 		cp "-R", "#{DATA_DIR}/foo", "."
 		exec "git add foo"
 		exec "git commit -m 'Add foo'"
-		execp "git push"
+		execp "git push origin master"
+		.then ->
+			assert.ok (test "-f", "foo/bar/baz.txt"), "Pushed Code"
 
 	it "Pulls changes", ->
 		cd SOURCE_DIR
