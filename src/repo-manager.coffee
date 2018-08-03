@@ -1,6 +1,6 @@
 _ = require "lodash"
-Promise = require "bluebird"
 _path = require "path"
+Promise = require "bluebird"
 git = require "./ezgit"
 
 EventEmitter = require "events-as-promised"
@@ -10,11 +10,12 @@ DEFAULT_PATTERN = /.*/
 class RepoManager extends EventEmitter
 	module.exports = @
 
-	constructor: (@root, @disposables=[], @options={}) ->
-	
-	disposable: (obj) ->
-		@disposables.push obj
-		obj
+	constructor: (@root, disposables=[], @options={}) ->
+		@disposables = disposables
+		@disposable = (obj) ->
+			disposables.push(obj)
+			obj
+
 
 	parse: (path) ->
 		name = path.replace /\.git$/, ""
