@@ -2,10 +2,9 @@
   "name": "express-git",
   "version": "0.7.0",
   "description": "An express middleware acting as git-http-backend and more",
-  "main": "lib/index.js",
+  "main": "src/index.js",
   "scripts": {
-    "prepublish": "coffee -c -m -o lib/ src/",
-    "test": "mocha --compilers=coffee:coffee-script/register --recursive test/"
+    "test": "mocha --recursive test/"
   },
   "author": "Alexandros Sigalas <alxarch@gmail.com>",
   "license": "Apache 2.0",
@@ -20,7 +19,6 @@
     "bluebird": "^2.9.27",
     "body-parser": "^1.14.1",
     "busboy": "^0.2.9",
-    "coffee-script": "^1.9.3",
     "events-as-promised": "^0.1.4",
     "express": "^4.12.4",
     "lodash": "^3.10.1",
