@@ -31,7 +31,7 @@ module.exports = function(app, options) {
   if (options == null) {
     options = {};
   }
-  const GIT_EXEC = (options != null ? options.git_executable : undefined) || which("git");
+  const GIT_EXEC = (options != null ? options.git_executable : undefined) || which("git").toString();
   const headers = function(service, type) {
     if (type == null) {
       type = "result";

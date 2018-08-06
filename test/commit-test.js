@@ -23,6 +23,7 @@ describe("POST /*.git/commit", function() {
   const FILE = `${__dirname}/data/test.txt`;
   const FILEDATA = cat(FILE);
 
+
   after(() => rimraf(GIT_PROJECT_ROOT));
   it("creates a repo on first commit", () =>
     agent.post("/test.git/commit")
@@ -33,12 +34,14 @@ describe("POST /*.git/commit", function() {
     .expect(200)
   );
 
+
   it("browses the commit", () =>
     agent.get("/test.git/commit")
     .expect(function(res) {
       assert(res.body.author.email === "john@doe.com");
       assert(res.body.committer.email === "john@doe.com");
       assert(res.body.id.length === 40);
+      assert(res.body.tree == "d167684be4b725bc71ddb6498a96fe19b876683d");
       return assert(res.body.message === "Commit message");
     })
   );
@@ -51,7 +54,7 @@ describe("POST /*.git/commit", function() {
         type: "blob",
         mime: "text/plain",
         size: FILEDATA.length,
-        contents: FILEDATA,
+        contents: FILEDATA.toString(),
         encoding: "utf8",
         binary: false,
         truncated: false,
@@ -63,7 +66,7 @@ describe("POST /*.git/commit", function() {
         path: "foo/bar/test.txt",
         mime: "text/plain",
         size: FILEDATA.length,
-        contents: FILEDATA,
+        contents: FILEDATA.toString(),
         encoding: "utf8",
         binary: false,
         truncated: false,
@@ -86,7 +89,7 @@ describe("POST /*.git/commit", function() {
           path: "foo/bar/test.txt",
           type: "blob",
           filename: "test.txt",
-          attr: "100644"
+          filemode: "100644"
         }]
       });
     const dirB = agent.get("/test.git/tree/foo")
@@ -100,14 +103,14 @@ describe("POST /*.git/commit", function() {
             type: "tree",
             path: "foo/bar",
             filename: "bar",
-            attr: "40000"
+            filemode: "40000"
           },
           {
             id: "980a0d5f19a64b4b30a87d4206aade58726b60e3",
             path: "foo/test.txt",
             type: "blob",
             filename: "test.txt",
-            attr: "100644"
+            filemode: "100644"
           }
         ]
       });
@@ -117,10 +120,10 @@ describe("POST /*.git/commit", function() {
   it("finds the created files", function() {
     const fileA = agent.get("/test.git/raw/foo/bar/test.txt")
       .expect(200)
-      .expect(FILEDATA);
+      .expect(FILEDATA.toString());
     const fileB = agent.get("/test.git/raw/foo/test.txt")
       .expect(200)
-      .expect(FILEDATA);
+      .expect(FILEDATA.toString());
     return Promise.join(fileA, fileB);
   });
 

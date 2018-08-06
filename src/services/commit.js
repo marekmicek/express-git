@@ -149,9 +149,7 @@ module.exports = function(app, options) {
       })
     );
 
-    disposable(author = Promise.join(repo, form, function(repo, {
-      commit
-    }) {
+    disposable(author = Promise.join(repo, form, function(repo, { commit }) {
       let created_at;
       ({
         created_at,
@@ -164,9 +162,7 @@ module.exports = function(app, options) {
       }
     }));
 
-    disposable(committer = Promise.join(author, form, function(author, {
-      commit
-    }) {
+    disposable(committer = Promise.join(author, form, function(author, { commit }) {
       ({
         committer
       } = commit);
@@ -177,18 +173,15 @@ module.exports = function(app, options) {
       }
     }));
 
-    const addremove = Promise.join(repo, index, form, function(repo, index, {
-      remove,
-      add
-    }) {
+    const addremove = Promise.join(repo, index, form, function(repo, index, { remove, add }) {
       repo.setWorkdir(WORKDIR, 0);
-      for (let r of Array.from(remove)) {
-        index.removeByPath(r);
-      }
-      for (let a of Array.from(add)) {
-        index.addByPath(a);
-      }
-      return index.writeTree()
+
+      let removes = remove.map((r) => index.removeByPath(r));
+      let adds = add.map((a) => index.addByPath(a));
+
+      return Promise.all(removes.concat(adds))
+        .then(() => index.write())
+        .then(() => index.writeTree())
         .then(disposable);
     });
 

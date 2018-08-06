@@ -294,8 +294,8 @@ g.TreeEntry.prototype.toJSON = function() {
     id: this.oid(),
     path: this.path(),
     type: this.isBlob() ? "blob" : "tree",
-    filename: this.filename(),
-    attr: this.attr().toString(8)
+    filename: this.name(),
+    filemode: this.filemode().toString(8)
   };
 };
 
