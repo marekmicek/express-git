@@ -1,6 +1,6 @@
 {
   "name": "express-git",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "An express middleware acting as git-http-backend and more",
   "main": "src/index.js",
   "scripts": {
