@@ -1,28 +1,39 @@
+> ## Note
+> This is a fork of
+> [alxarch/express-git](https://github.com/alxarch/express-git/).
+> - The project was unmaintained.
+> - Using ES6 instead of coffee-script.
+> - Tests were failing. The last successfull build on dated to 2015.
+> - Updated dependencies to the latest. Most notably: `nodegit` and
+>   `shelljs`
+
+----
+
 Express middleware that acts as a git-http-backend
 
 Usage:
 
 ```javascript
 
-var express = require("express");
-var expressGit = require("express-git");
-var app = express();
-app.use("/git", expressGit.serve("path/torepos/", {
-	auto_init: true,
-	serve_static: true,
-	authorize: function (service, req, next) {
-		// Authorize a service
-		next();
-	}
+const express = require("express");
+const expressGit = require("express-git");
+const app = express();
+const gitServer = expressGit.serve("path/torepos/", {
+  auto_init: true,
+  serve_static: true,
+  authorize: function (service, req, next) {
+    // Authorize a service
+    next();
+  }
 });
+app.use("/git", gitServer);
 
-app.on('post-receive', function (repo, changes) {
-	// Do something after a push
-	next();
+gitServer.on('post-receive', function (repo, changes) {
+  // Do something after a push
+  next();
 });
 
 app.listen(3000);
-
 ```
 
 After which you can
