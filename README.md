@@ -9,6 +9,8 @@
 
 ----
 
+[![Build Status](https://travis-ci.com/crodjer/express-git.svg?branch=master)](https://travis-ci.com/crodjer/express-git)
+
 Express middleware that acts as a git-http-backend
 
 Usage:
