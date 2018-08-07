@@ -403,7 +403,8 @@ g.Signature.create = function(...args) {
   offset = parseInt(offset);
   name = trim(name);
   email = trim(email);
-  if (!name || !time || !offset) {
+
+  if (!name || !time || isNaN(offset)) {
     throw new TypeError("Invalid signature arguments");
   }
   return g.Signature._create(name, email, time, offset);
