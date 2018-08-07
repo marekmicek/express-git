@@ -6,6 +6,7 @@
 const expressGit = require("../src/index");
 const Promise = require("bluebird");
 const rimraf = Promise.promisify(require("rimraf"));
+const execp = Promise.promisify(require("child_process").exec);
 const os = require("os");
 const path = require("path");
 const supertest = require("supertest-as-promised");
@@ -13,15 +14,33 @@ const {
   assert
 } = require("chai");
 const {
+  exec,
   cat
 } = require("shelljs");
 const GIT_PROJECT_ROOT = path.join(os.tmpdir(), `express-git-test-${new Date().getTime()}`);
 const app = expressGit.serve(GIT_PROJECT_ROOT, {});
 const agent = supertest(app);
 
+function git_object_details(repo, file_path) {
+  repo = path.join(GIT_PROJECT_ROOT, repo);
+
+  return execp(`cd ${repo}; git ls-tree -l HEAD ${file_path}`)
+    .then(function (output) {
+      [filemode, type, id, size] = output.split(/\s+/);
+
+      return {
+        filemode,
+        type,
+        id,
+        size
+      }
+    });
+}
+
 describe("POST /*.git/commit", function() {
   const FILE = `${__dirname}/data/test.txt`;
   const FILEDATA = cat(FILE);
+  var commit_response;
 
 
   after(() => rimraf(GIT_PROJECT_ROOT));
@@ -31,89 +50,103 @@ describe("POST /*.git/commit", function() {
     .field("author", "John Doe <john@doe.com>")
     .attach("foo/bar/test.txt", FILE)
     .attach("foo/test.txt", FILE)
+    .expect(function(res) {
+      commit_response = res.body;
+
+      assert(commit_response.author.email === "john@doe.com");
+      assert(commit_response.committer.email === "john@doe.com");
+      assert(commit_response.id.length === 40);
+      return assert(commit_response.message === "Commit message");
+    })
     .expect(200)
   );
 
-
   it("browses the commit", () =>
     agent.get("/test.git/commit")
-    .expect(function(res) {
-      assert(res.body.author.email === "john@doe.com");
-      assert(res.body.committer.email === "john@doe.com");
-      assert(res.body.id.length === 40);
-      assert(res.body.tree == "d167684be4b725bc71ddb6498a96fe19b876683d");
-      return assert(res.body.message === "Commit message");
-    })
+    .expect(commit_response)
   );
 
   it("Can browse the created blobs", function() {
-    const blobA = agent.get("/test.git/blob/foo/test.txt")
-      .expect({
-        id: "980a0d5f19a64b4b30a87d4206aade58726b60e3",
-        path: "foo/test.txt",
-        type: "blob",
-        mime: "text/plain",
-        size: FILEDATA.length,
-        contents: FILEDATA.toString(),
-        encoding: "utf8",
-        binary: false,
-        truncated: false,
-        filename: "test.txt"
-      });
-    const blobB = agent.get("/test.git/blob/foo/bar/test.txt")
-      .expect({
-        id: "980a0d5f19a64b4b30a87d4206aade58726b60e3",
-        path: "foo/bar/test.txt",
-        mime: "text/plain",
-        size: FILEDATA.length,
-        contents: FILEDATA.toString(),
-        encoding: "utf8",
-        binary: false,
-        truncated: false,
-        type: "blob",
-        filename: "test.txt"
-      });
+    const blobA = git_object_details("test", "foo/test.txt").then(function (details) {
+      return agent.get("/test.git/blob/foo/test.txt")
+        .expect({
+          id: details.id,
+          path: "foo/test.txt",
+          type: "blob",
+          mime: "text/plain",
+          size: FILEDATA.length,
+          contents: FILEDATA.toString(),
+          encoding: "utf8",
+          binary: false,
+          truncated: false,
+          filename: "test.txt"
+        })
+    });
+    const blobB = git_object_details("test", "foo/bar/test.txt").then(function (details) {
+      return agent.get("/test.git/blob/foo/bar/test.txt")
+        .expect({
+          id: details.id,
+          path: "foo/bar/test.txt",
+          mime: "text/plain",
+          size: FILEDATA.length,
+          contents: FILEDATA.toString(),
+          encoding: "utf8",
+          binary: false,
+          truncated: false,
+          type: "blob",
+          filename: "test.txt"
+        })
+    }) ;
 
     return Promise.join(blobA, blobB);
   });
 
   it("Can browse the created dirs", function() {
-    const dirA = agent.get("/test.git/tree/foo/bar")
-      .expect({
-        id: "376357880b048faf2553da6bc58ae820cea3690a",
-        type: "tree",
-        path: "foo/bar",
-        name: "bar",
-        entries: [{
-          id: "980a0d5f19a64b4b30a87d4206aade58726b60e3",
-          path: "foo/bar/test.txt",
-          type: "blob",
-          filename: "test.txt",
-          filemode: "100644"
-        }]
-      });
-    const dirB = agent.get("/test.git/tree/foo")
-      .expect({
-        id: "9868d83040a01353c11c7aec46364e817ba51643",
-        type: "tree",
-        path: "foo",
-        name: "foo",
-        entries: [{
-            id: "376357880b048faf2553da6bc58ae820cea3690a",
+    const dirA = Promise.join(
+      git_object_details("test", "foo/bar"),
+      git_object_details("test", "foo/bar/test.txt"),
+    ).then(function ([details, file_details]) {
+      return agent.get("/test.git/tree/foo/bar")
+        .expect({
+          id: details.id,
+          type: "tree",
+          path: "foo/bar",
+          name: "bar",
+          entries: [{
+            id: file_details.id,
+            path: "foo/bar/test.txt",
+            type: "blob",
+            filename: "test.txt",
+            filemode: "100644"
+          }]
+        })
+    });
+    const dirB = Promise.join(
+      git_object_details("test", "foo"),
+      git_object_details("test", "foo/bar"),
+      git_object_details("test", "foo/test.txt")
+    ).then(function ([details, subdir_details, file_details]) {
+      return agent.get("/test.git/tree/foo")
+        .expect({
+          id: details.id,
+          type: "tree",
+          path: "foo",
+          name: "foo",
+          entries: [{
+            id: subdir_details.id,
             type: "tree",
             path: "foo/bar",
             filename: "bar",
             filemode: "40000"
-          },
-          {
-            id: "980a0d5f19a64b4b30a87d4206aade58726b60e3",
+          }, {
+            id: file_details.id,
             path: "foo/test.txt",
             type: "blob",
             filename: "test.txt",
             filemode: "100644"
-          }
-        ]
-      });
+          }]
+        })
+    });
     return Promise.join(dirA, dirB);
   });
 
